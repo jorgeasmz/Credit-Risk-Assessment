@@ -1,9 +1,9 @@
+streamlit
 fastapi
 uvicorn
 scikit-learn
 pandas
 joblib
-streamlit
 gunicorn
 requests
 pydantic
