@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    container_name: credit_risk_api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./model:/app/model  # Persist the model or allow local training to reflect
+      - ./app:/app/app      # Allow code changes to reflect
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  web:
+    build: .
+    container_name: credit_risk_frontend
+    command: streamlit run frontend/app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000/predict
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app/frontend
+      - ./model:/app/model

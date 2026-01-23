@@ -27,7 +27,7 @@ class CreditApplication(BaseModel):
     foreign_worker: str = Field(..., title="Foreign Worker", description="Foreign worker status (e.g., A201, A202)")
 
     class Config:
-        schema_extra = {
+        jason_schema_extra = {
             "example": {
                 "checkin_acc": "A11",
                 "duration": 6,
