@@ -6,10 +6,6 @@ import json
 # --- Configuration ---
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
-# Ensure the URL points to the /predict endpoint
-if not API_URL.endswith("/predict"):
-    API_URL = API_URL.rstrip("/") + "/predict"
-
 st.set_page_config(
     page_title="Credit Risk Dashboard",
     page_icon="🏦",
