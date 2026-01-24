@@ -4,7 +4,7 @@ import os
 import json
 
 # --- Configuration ---
-API_URL = os.environ.get("API_URL", "http://localhost:8000/predict")
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
 # Ensure the URL points to the /predict endpoint
 if not API_URL.endswith("/predict"):
@@ -113,7 +113,7 @@ if submitted:
     with st.spinner("Consulting AI Model..."):
         try:
             # 3. Send Request to API
-            response = requests.post(API_URL, json=payload)
+            response = requests.post(f"{API_URL}/predict", json=payload)
             
             # 4. Handle Response
             if response.status_code == 200:
