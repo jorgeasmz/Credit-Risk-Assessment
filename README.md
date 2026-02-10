@@ -2,6 +2,8 @@
 
 A machine learning microservice and UI for evaluating credit applicant risk using the German Credit Data set.
 
+**Live Demo:** [Streamlit App](https://jorgeasmz-credit-risk-assessment.streamlit.app/)
+
 ## Architecture
 
 The system consists of three distinct components:
