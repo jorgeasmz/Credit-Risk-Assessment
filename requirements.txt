@@ -6,3 +6,10 @@ pandas==3.0.5
 joblib==1.5.3
 requests==2.34.2
 pydantic==2.13.4
+SQLAlchemy==2.0.52
+alembic==1.19.1
+# The binary extra ships the compiled libpq; without it a slim image has to
+# build from source and needs libpq-dev at image build time.
+psycopg[binary]==3.3.4
+shap==0.52.0
+plotly==7.0.0

@@ -1,4 +1,19 @@
 services:
+  db:
+    image: postgres:17-alpine
+    container_name: credit_risk_db
+    environment:
+      POSTGRES_USER: credit
+      POSTGRES_PASSWORD: credit
+      POSTGRES_DB: credit
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U credit -d credit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build: .
     container_name: credit_risk_api
@@ -6,11 +21,17 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql+psycopg://credit:credit@db:5432/credit
+      # Override in a .env file. The service refuses to score without one.
+      - API_KEY=${API_KEY:-local-development-key}
     # The model directory is deliberately NOT mounted: the image trains the
     # artifact at build time, and a host mount would hide it behind an empty
     # directory on a fresh clone, leaving the API answering 503 to everything.
     volumes:
       - ./app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,json; assert json.load(urllib.request.urlopen('http://localhost:8000/'))['model_loaded']\""]
       interval: 10s
@@ -26,8 +47,12 @@ services:
       - "8501:8501"
     environment:
       - API_URL=http://api:8000
+      - API_KEY=${API_KEY:-local-development-key}
     depends_on:
       api:
         condition: service_healthy
     volumes:
       - ./frontend:/app/frontend
+
+volumes:
+  db-data:

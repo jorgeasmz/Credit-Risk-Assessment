@@ -21,8 +21,10 @@ RUN python -m model.train
 # 7. Expose the port
 EXPOSE 8000
 
-# 8. Run the Application.
-# Render and most container hosts inject $PORT and expect the process to bind
-# to it. Exec form would not expand the variable, so this goes through sh, and
-# "exec" hands PID 1 to uvicorn so it still receives SIGTERM on shutdown.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# 8. Migrate, then serve.
+# Migrations run at startup rather than at build time because the database does
+# not exist yet when the image is built. Render and most container hosts inject
+# $PORT and expect the process to bind to it; exec form would not expand the
+# variable, so this goes through sh, and "exec" keeps uvicorn as PID 1 so it
+# still receives SIGTERM.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
