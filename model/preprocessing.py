@@ -1,59 +1,28 @@
 import pandas as pd
-import io
-import requests
 
-def load_data():
+from model.config import COLUMNS, DATA_URL, TARGET_COLUMN, TARGET_MAPPING
+
+
+def load_data(source: str = DATA_URL) -> pd.DataFrame:
     """
-    Fetches the German Credit Data from the UCI Machine Learning Repository.
-    
-    The dataset contains 1000 entries with 20 categorical/symbolic attributes.
-    Original Data Source: https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)
-    
-    Returns:
-        pd.DataFrame: A pandas DataFrame containing the raw data with readable column headers.
+    Loads the German Credit dataset and maps the target to 0 = good, 1 = bad.
+
+    Accepts a URL or a local path. Raises on failure so the caller decides how
+    to report it.
+
+    Raises:
+        ValueError: if the target column holds values outside the documented
+            encoding, which would otherwise become silent NaNs.
     """
-    url = "http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
-    
-    columns = [
-        'checkin_acc',       # Status of existing checking account
-        'duration',          # Duration in month
-        'credit_history',    # Credit history
-        'purpose',           # Purpose of the loan
-        'amount',            # Credit amount
-        'savings_acc',       # Savings account/bonds
-        'present_emp_since', # Present employment since
-        'installment_rate',  # Installment rate in percentage of disposable income
-        'personal_status',   # Personal status and sex
-        'other_debtors',     # Other debtors / guarantors
-        'residing_since',    # Present residence since
-        'property',          # Property
-        'age',               # Age in years
-        'inst_plans',        # Other installment plans
-        'housing',           # Housing
-        'num_credits',       # Number of existing credits at this bank
-        'job',               # Job
-        'dependents',        # Number of people being liable to provide maintenance for
-        'telephone',         # Telephone
-        'foreign_worker',    # Foreign worker
-        'status'             # Cost Matrix (Risk)
-    ]
+    df = pd.read_csv(source, sep=" ", names=COLUMNS)
 
-    try:
-        print(f"Downloading data from {url}...")
-        response = requests.get(url)
-        response.raise_for_status() # Check for HTTP errors
-        
-        # Load string data into pandas. Using ' ' separator as per dataset format.
-        df = pd.read_csv(io.StringIO(response.text), sep=' ', names=columns)
-        
-        # Preprocessing the Target Variable:
-        # In the original dataset: 1 = Good, 2 = Bad.
-        # So we map: 2 -> 1 (Risk/Bad), 1 -> 0 (No Risk/Good).
-        df['status'] = df['status'].map({1: 0, 2: 1})
-        
-        print(f"Data loaded successfully. Shape: {df.shape}")
-        return df
+    mapped = df[TARGET_COLUMN].map(TARGET_MAPPING)
+    if mapped.isna().any():
+        unexpected = sorted(set(df.loc[mapped.isna(), TARGET_COLUMN]))
+        raise ValueError(
+            f"Unexpected value(s) in '{TARGET_COLUMN}': {unexpected}. "
+            f"Expected one of {sorted(TARGET_MAPPING)}."
+        )
+    df[TARGET_COLUMN] = mapped.astype(int)
 
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        raise
+    return df

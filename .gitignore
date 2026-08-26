@@ -18,3 +18,9 @@ Thumbs.db
 
 # Project Specific
 model/credit_risk_model.joblib
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/

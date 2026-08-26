@@ -1,9 +1,8 @@
-streamlit
-fastapi
-uvicorn
-scikit-learn
-pandas
-joblib
-gunicorn
-requests
-pydantic
+streamlit==1.62.0
+fastapi==0.141.1
+uvicorn==0.52.4
+scikit-learn==1.9.0
+pandas==3.0.5
+joblib==1.5.3
+requests==2.34.2
+pydantic==2.13.4

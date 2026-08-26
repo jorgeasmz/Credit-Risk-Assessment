@@ -1,10 +1,29 @@
-import streamlit as st
-import requests
 import os
-import json
+
+import requests
+import streamlit as st
 
 # --- Configuration ---
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
+
+# Render free instances spin down when idle and take up to a minute to wake,
+# so the first request of the day needs far more than a default timeout.
+REQUEST_TIMEOUT = int(os.environ.get("API_TIMEOUT", "90"))
+
+# Codes come straight from the UCI documentation; the raw values mean nothing
+# to anyone filling in the form.
+PURPOSE_LABELS = {
+    "A40": "A40 - New car",
+    "A41": "A41 - Used car",
+    "A42": "A42 - Furniture / equipment",
+    "A43": "A43 - Radio / television",
+    "A44": "A44 - Domestic appliances",
+    "A45": "A45 - Repairs",
+    "A46": "A46 - Education",
+    "A48": "A48 - Retraining",
+    "A49": "A49 - Business",
+    "A410": "A410 - Other",
+}
 
 st.set_page_config(
     page_title="Credit Risk Dashboard",
@@ -55,7 +74,7 @@ with st.form("prediction_form"):
         purpose = st.selectbox(
             "Purpose",
             options=["A40", "A41", "A42", "A43", "A44", "A45", "A46", "A48", "A49", "A410"],
-            format_func=lambda x: f"{x} (Car/Furniture/Radio/etc)"  # Simple formatting helper
+            format_func=lambda x: PURPOSE_LABELS.get(x, x),
         )
         installment_rate = st.slider("Installment Rate (% of Income)", 1, 4, 3)
         inst_plans = st.selectbox("Other Installment Plans", ["A141", "A142", "A143"])
@@ -71,7 +90,7 @@ with st.form("prediction_form"):
         with st.expander("Additional Details"):
             residing_since = st.slider("Residing Since (Years)", 1, 4, 2)
             num_credits = st.number_input("Existing Credits", 1, 10, 1)
-            dependents = st.number_input("dependents", 1, 5, 1)
+            dependents = st.number_input("Dependents", 1, 5, 1)
             present_emp_since = st.selectbox("Employed Since", ["A71", "A72", "A73", "A74", "A75"])
             telephone = st.selectbox("Telephone Registered?", ["A191", "A192"])
 
@@ -109,7 +128,7 @@ if submitted:
     with st.spinner("Consulting AI Model..."):
         try:
             # 3. Send Request to API
-            response = requests.post(f"{API_URL}/predict", json=payload)
+            response = requests.post(f"{API_URL}/predict", json=payload, timeout=REQUEST_TIMEOUT)
             
             # 4. Handle Response
             if response.status_code == 200:
@@ -124,10 +143,10 @@ if submitted:
                 
                 with col_res1:
                     if risk_class == 1:
-                        st.error(f"⚠️ Recommendation: REJECT")
+                        st.error("Recommendation: REJECT")
                         st.metric("Risk Label", "High Risk")
                     else:
-                        st.success(f"✅ Recommendation: APPROVE")
+                        st.success("Recommendation: APPROVE")
                         st.metric("Risk Label", "Low Risk")
                 
                 with col_res2:
@@ -142,6 +161,11 @@ if submitted:
                 st.error(f"API Error: {response.status_code}")
                 st.text(response.text)
                 
+        except requests.exceptions.Timeout:
+            st.warning(
+                f"The API did not answer within {REQUEST_TIMEOUT}s. A free-tier "
+                "backend may be waking up from idle. Try again in a moment."
+            )
         except requests.exceptions.ConnectionError:
             st.error("🚨 Connection Error: Could not connect to backend.")
             st.info(f"Ensure the API is running at: {API_URL}")

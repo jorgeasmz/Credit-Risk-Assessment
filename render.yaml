@@ -1,0 +1,12 @@
+# Render Blueprint: the API service, as code rather than dashboard clicks.
+# Apply with Render > Blueprints > New Blueprint Instance, pointing at this repo.
+services:
+  - type: web
+    name: credit-risk-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"

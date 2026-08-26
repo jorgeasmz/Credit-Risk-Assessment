@@ -2,14 +2,21 @@ services:
   api:
     build: .
     container_name: credit_risk_api
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
-    volumes:
-      - ./model:/app/model  # Persist the model or allow local training to reflect
-      - ./app:/app/app      # Allow code changes to reflect
     environment:
       - PYTHONUNBUFFERED=1
+    # The model directory is deliberately NOT mounted: the image trains the
+    # artifact at build time, and a host mount would hide it behind an empty
+    # directory on a fresh clone, leaving the API answering 503 to everything.
+    volumes:
+      - ./app:/app/app
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,json; assert json.load(urllib.request.urlopen('http://localhost:8000/'))['model_loaded']\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   web:
     build: .
@@ -20,7 +27,7 @@ services:
     environment:
       - API_URL=http://api:8000
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     volumes:
       - ./frontend:/app/frontend
-      - ./model:/app/model
