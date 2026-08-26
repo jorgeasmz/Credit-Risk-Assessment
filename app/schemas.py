@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class CreditApplication(BaseModel):
     """
@@ -17,17 +18,17 @@ class CreditApplication(BaseModel):
     other_debtors: str = Field(..., title="Other Debtors", description="Other debtors / guarantors (e.g., A101-A103)")
     residing_since: int = Field(..., gt=0, title="Residing Since", description="Present residence since (years)")
     property: str = Field(..., title="Property", description="Property magnitude (e.g., A121-A124)")
-    age: int = Field(..., gt=18, title="Age", description="Age in years")
+    age: int = Field(..., ge=18, title="Age", description="Age in years")
     inst_plans: str = Field(..., title="Installment Plans", description="Other installment plans (e.g., A141-A143)")
     housing: str = Field(..., title="Housing", description="Housing status (e.g., A151-A153)")
     num_credits: int = Field(..., gt=0, title="Number of Credits", description="Number of existing credits at this bank")
     job: str = Field(..., title="Job", description="Job qualification (e.g., A171-A174)")
     dependents: int = Field(..., gt=0, title="Dependents", description="Number of people being liable to provide maintenance for")
-    telephone: str = Field(..., title="Telephone", description="relephone status (e.g., A191, A192)")
+    telephone: str = Field(..., title="Telephone", description="Telephone status (e.g., A191, A192)")
     foreign_worker: str = Field(..., title="Foreign Worker", description="Foreign worker status (e.g., A201, A202)")
 
-    class Config:
-        jason_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "checkin_acc": "A11",
                 "duration": 6,
@@ -48,9 +49,10 @@ class CreditApplication(BaseModel):
                 "job": "A173",
                 "dependents": 1,
                 "telephone": "A192",
-                "foreign_worker": "A201"
+                "foreign_worker": "A201",
             }
         }
+    )
 
 class PredictionResponse(BaseModel):
     """
