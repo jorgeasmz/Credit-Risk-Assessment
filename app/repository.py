@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import Integer, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Decision
+from app.settings import SCORE_BUCKETS
 from model.config import COST_FALSE_NEGATIVE, COST_FALSE_POSITIVE
 
 
@@ -67,6 +68,20 @@ def record_outcome(
     return decision
 
 
+def score_distribution(session: Session, buckets: int = SCORE_BUCKETS) -> list[int]:
+    """Counts of predicted probabilities per equal-width bucket."""
+    index = func.cast(func.floor(Decision.probability * buckets), Integer)
+    rows = session.execute(
+        select(index.label("bucket"), func.count(Decision.id)).group_by("bucket")
+    ).all()
+
+    counts = [0] * buckets
+    for bucket, count in rows:
+        # A probability of exactly 1.0 would otherwise fall outside the range.
+        counts[min(int(bucket), buckets - 1)] += count
+    return counts
+
+
 def summarise(session: Session) -> dict:
     """Portfolio figures; realised cost covers only decisions with an outcome."""
     total = session.scalar(select(func.count(Decision.id))) or 0
@@ -112,4 +127,5 @@ def summarise(session: Session) -> dict:
         "realised_cost": (
             false_negatives * COST_FALSE_NEGATIVE + false_positives * COST_FALSE_POSITIVE
         ),
+        "score_distribution": score_distribution(session),
     }

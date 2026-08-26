@@ -26,6 +26,9 @@ API_KEY = os.getenv("API_KEY", "")
 
 API_KEY_HEADER = "X-API-Key"
 
+# Buckets used for the score histogram.
+SCORE_BUCKETS = 10
+
 # Page size limits for the decision log.
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
