@@ -40,13 +40,7 @@ def get_decision(session: Session, decision_id: int) -> Decision | None:
 def list_decisions(
     session: Session, *, limit: int, cursor: int | None = None
 ) -> tuple[list[Decision], int | None]:
-    """
-    Newest first, paginated by key rather than by offset.
-
-    OFFSET has to walk the rows it skips, so it degrades as the log grows, and
-    it silently shifts entries when new decisions arrive mid-pagination. Seeking
-    on the primary key has neither problem.
-    """
+    """Newest first, seeking on the primary key rather than using OFFSET."""
     statement = select(Decision).order_by(Decision.id.desc()).limit(limit + 1)
     if cursor is not None:
         statement = statement.where(Decision.id < cursor)
@@ -74,13 +68,7 @@ def record_outcome(
 
 
 def summarise(session: Session) -> dict:
-    """
-    Portfolio-level figures for the decision log.
-
-    Realised cost is reported over the decisions that have an outcome, and only
-    those: the cost matrix needs to know what actually happened, so a service
-    without a feedback loop cannot measure what it is costing.
-    """
+    """Portfolio figures; realised cost covers only decisions with an outcome."""
     total = session.scalar(select(func.count(Decision.id))) or 0
     approved = (
         session.scalar(

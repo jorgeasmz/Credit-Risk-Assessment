@@ -1,17 +1,10 @@
-"""
-Alembic environment.
-
-The URL and metadata come from the application rather than from alembic.ini, so
-there is a single source of truth for both and no connection string committed to
-the repository.
-"""
+"""Alembic environment; URL and metadata come from the application, not alembic.ini."""
 
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
-# Imported for its side effect: the models must be registered on Base.metadata
-# before autogenerate can see them.
+# Imported for its side effect: autogenerate needs the models on Base.metadata.
 import app.models  # noqa: F401
 from alembic import context
 from app.db import Base
@@ -48,8 +41,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            # SQLite cannot ALTER a column in place; batch mode rewrites the
-            # table instead, so the same migrations run on both backends.
+            # SQLite cannot ALTER in place; batch mode rewrites the table instead.
             render_as_batch=connection.dialect.name == "sqlite",
         )
         with context.begin_transaction():

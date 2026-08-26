@@ -7,12 +7,10 @@ import streamlit as st
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
 
-# Free Render instances spin down when idle and take up to a minute to wake,
-# so the first request of the day needs far more than a default timeout.
+# Free Render instances sleep when idle and take up to a minute to wake.
 REQUEST_TIMEOUT = int(os.environ.get("API_TIMEOUT", "90"))
 
-# Codes come straight from the UCI documentation; the raw values mean nothing
-# to anyone filling in the form.
+# The raw UCI codes mean nothing to anyone filling in the form.
 PURPOSE_LABELS = {
     "A40": "A40 - New car",
     "A41": "A41 - Used car",
@@ -41,12 +39,7 @@ def api_key() -> str:
 
 
 def call_api(method: str, path: str, **kwargs):
-    """
-    One place for the header, the timeout and the failure modes.
-
-    Returns (payload, error). Callers render one or the other; nothing raises
-    into the Streamlit script.
-    """
+    """Header, timeout and failure modes in one place; returns (payload, error)."""
     key = api_key()
     if not key:
         return None, "No API key configured. Set API_KEY in the app secrets."
@@ -76,13 +69,7 @@ def call_api(method: str, path: str, **kwargs):
 
 
 def contribution_waterfall(contributions: dict) -> go.Figure:
-    """
-    Shows how each field moved the decision.
-
-    Values are in log-odds, which is the scale the model actually adds on. They
-    are not percentages and do not sum to the probability, so the axis says so
-    rather than inviting the wrong reading.
-    """
+    """Shows how each field moved the decision, in log-odds rather than percentages."""
     items = list(contributions.items())
     head, tail = items[:TOP_CONTRIBUTIONS], items[TOP_CONTRIBUTIONS:]
     if tail:

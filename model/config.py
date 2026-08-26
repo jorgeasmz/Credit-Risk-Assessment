@@ -39,8 +39,7 @@ COLUMNS = [
 
 TARGET_COLUMN = "status"
 
-# Upstream encodes 1 = good, 2 = bad. We model risk, so bad becomes the
-# positive class.
+# Upstream encodes 1 = good, 2 = bad; we model risk, so bad is the positive class.
 TARGET_MAPPING = {1: 0, 2: 1}
 
 CATEGORICAL_FEATURES = [
@@ -58,12 +57,9 @@ RANDOM_STATE = 42
 TEST_SIZE = 0.2
 N_ESTIMATORS = 100
 
-# The UCI dataset ships a cost matrix: approving an applicant who defaults is
-# five times as expensive as rejecting one who would have repaid.
+# UCI cost matrix: a missed default costs five times a rejected good applicant.
 COST_FALSE_NEGATIVE = 5
 COST_FALSE_POSITIVE = 1
 
-# Probability above which an applicant is classified as high risk. Chosen by
-# the cost sweep in evaluate.py, not left at the 0.5 default: 0.45 minimises
-# expected cost for the production classifier.
+# Chosen by the cost sweep in evaluate.py, not left at the 0.5 default.
 DECISION_THRESHOLD = 0.45

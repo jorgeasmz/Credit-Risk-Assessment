@@ -7,13 +7,7 @@ from app.db import Base
 
 
 class Decision(Base):
-    """
-    One scoring decision, kept for audit.
-
-    A credit decision has to be reconstructable after the fact: what was asked,
-    what the model answered, which artifact answered it and under which
-    threshold. Storing the probability alone would not survive a dispute.
-    """
+    """One scoring decision, kept for audit."""
 
     __tablename__ = "decisions"
 
@@ -32,8 +26,7 @@ class Decision(Base):
     application: Mapped[dict] = mapped_column(JSON, nullable=False)
     contributions: Mapped[dict] = mapped_column(JSON, nullable=False)
 
-    # Feedback loop. Cost cannot be measured without knowing what actually
-    # happened, so the ground truth arrives later or not at all.
+    # Ground truth arrives later, or never.
     defaulted: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     outcome_recorded_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

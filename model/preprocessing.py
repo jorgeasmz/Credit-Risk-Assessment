@@ -7,12 +7,10 @@ def load_data(source: str = DATA_URL) -> pd.DataFrame:
     """
     Loads the German Credit dataset and maps the target to 0 = good, 1 = bad.
 
-    Accepts a URL or a local path. Raises on failure so the caller decides how
-    to report it.
+    Accepts a URL or a local path.
 
     Raises:
-        ValueError: if the target column holds values outside the documented
-            encoding, which would otherwise become silent NaNs.
+        ValueError: if the target column holds an undocumented value.
     """
     df = pd.read_csv(source, sep=" ", names=COLUMNS)
 
