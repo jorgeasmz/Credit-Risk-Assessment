@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -56,8 +58,75 @@ class CreditApplication(BaseModel):
 
 class PredictionResponse(BaseModel):
     """
-    Schema representing the output of the prediction endpoint.
+    The scoring result, including why it came out that way.
+
+    model_config disables Pydantic's protected "model_" namespace: the field is
+    called model_version because that is what it is, and the warning it would
+    otherwise raise is about a name collision that does not exist here.
     """
+
+    model_config = ConfigDict(protected_namespaces=())
+
+    decision_id: int = Field(..., description="Identifier of the stored decision")
     risk_class: int = Field(..., description="0 = Good Credit (No Risk), 1 = Bad Credit (Risk)")
     risk_label: str = Field(..., description="Human readable label: 'Low Risk' or 'High Risk'")
-    probability: float = Field(..., description="Probability of the applicant defaulting (0.0 to 1.0)")
+    probability: float = Field(..., description="Probability of the applicant defaulting")
+    threshold: float = Field(..., description="Probability above which the applicant is flagged")
+    model_version: str = Field(..., description="Content hash of the artifact that decided")
+    contributions: dict[str, float] = Field(
+        ..., description="Per-field contribution to the log-odds of default"
+    )
+
+
+class DecisionRecord(BaseModel):
+    """One entry of the audit log."""
+
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
+
+    id: int
+    created_at: datetime
+    model_version: str
+    threshold: float
+    risk_class: int
+    probability: float
+    application: dict
+    contributions: dict[str, float]
+    defaulted: int | None = Field(
+        None, description="Ground truth once known: 1 if the applicant defaulted"
+    )
+    outcome_recorded_at: datetime | None = None
+
+
+class DecisionPage(BaseModel):
+    """A page of the audit log, seeked by key rather than by offset."""
+
+    items: list[DecisionRecord]
+    next_cursor: int | None = Field(
+        None, description="Pass as ?cursor= to fetch the following page; null at the end"
+    )
+
+
+class OutcomeRequest(BaseModel):
+    """Ground truth reported back once the loan resolves."""
+
+    defaulted: bool = Field(..., description="True if the applicant ended up defaulting")
+
+
+class PortfolioSummary(BaseModel):
+    """
+    Aggregate figures over the decision log.
+
+    Realised cost covers only the decisions with a recorded outcome: the cost
+    matrix needs to know what actually happened, so a service with no feedback
+    loop cannot report what it is costing.
+    """
+
+    total: int
+    approved: int
+    rejected: int
+    approval_rate: float
+    mean_probability: float
+    outcomes_recorded: int
+    false_negatives: int
+    false_positives: int
+    realised_cost: int

@@ -1,5 +1,9 @@
-# Render Blueprint: the API service, as code rather than dashboard clicks.
-# Apply with Render > Blueprints > New Blueprint Instance, pointing at this repo.
+# Render Blueprint: the API and its database, as code rather than dashboard
+# clicks. Apply with Render > Blueprints > New Blueprint Instance.
+databases:
+  - name: credit-risk-db
+    plan: free
+
 services:
   - type: web
     name: credit-risk-api
@@ -10,3 +14,11 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: credit-risk-db
+          property: connectionString
+      # Generated once by Render and never committed. Copy it into the
+      # Streamlit Cloud secrets so the front end can authenticate.
+      - key: API_KEY
+        generateValue: true

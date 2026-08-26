@@ -5,7 +5,6 @@ artifact next to this file.
 Usage: python -m model.train
 """
 
-import joblib
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -14,6 +13,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 
+from model.artifact import save
 from model.config import (
     DECISION_THRESHOLD,
     MODEL_PATH,
@@ -21,6 +21,7 @@ from model.config import (
     TARGET_COLUMN,
     TEST_SIZE,
 )
+from model.explain import build_background
 from model.pipeline import build_pipeline
 from model.preprocessing import load_data
 
@@ -54,8 +55,9 @@ def train_model() -> None:
     print("Confusion matrix (rows = actual, columns = predicted):")
     print(confusion_matrix(y_test, predictions))
 
-    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(clf, MODEL_PATH)
+    # The explanation background is fitted here and travels with the model, so
+    # the service never needs the training set to explain a prediction.
+    save(clf, build_background(clf, X_train), MODEL_PATH)
     print(f"\nModel saved to {MODEL_PATH}")
 
 

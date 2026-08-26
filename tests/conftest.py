@@ -2,8 +2,17 @@ import random
 
 import pandas as pd
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
+from app import settings
+from app.db import Base, get_session
+from app.main import app, get_scorer
+from app.utils import Scorer
+from model.artifact import ModelArtifact
 from model.config import CATEGORICAL_FEATURES, NUMERICAL_FEATURES, TARGET_COLUMN
+from model.explain import build_background
 from model.pipeline import build_pipeline
 
 VALID_PAYLOAD = {
@@ -86,3 +95,64 @@ def fitted_pipeline(training_frame):
 @pytest.fixture
 def valid_payload() -> dict:
     return dict(VALID_PAYLOAD)
+
+
+API_KEY = "test-key"
+
+
+@pytest.fixture
+def engine(tmp_path):
+    """A throwaway SQLite database with the schema created directly."""
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'test.db'}", connect_args={"check_same_thread": False}
+    )
+    Base.metadata.create_all(engine)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture
+def session(engine):
+    with Session(engine) as session:
+        yield session
+
+
+@pytest.fixture
+def fitted_scorer(fitted_pipeline, training_frame):
+    """A Scorer over the synthetic pipeline, explainer included."""
+    features = training_frame.drop(TARGET_COLUMN, axis=1)
+    artifact = ModelArtifact(
+        pipeline=fitted_pipeline,
+        background=build_background(fitted_pipeline, features),
+        version="testartifact",
+    )
+    return Scorer(artifact)
+
+
+@pytest.fixture
+def auth() -> dict:
+    return {settings.API_KEY_HEADER: API_KEY}
+
+
+@pytest.fixture
+def client(engine, fitted_scorer, monkeypatch):
+    """
+    A client with the database and the model swapped for test doubles.
+
+    Overriding the dependencies rather than the settings keeps the real module
+    state untouched, so tests cannot leak configuration into each other.
+    """
+    monkeypatch.setattr(settings, "API_KEY", API_KEY)
+
+    def override_session():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_scorer] = lambda: fitted_scorer
+    app.state.scorer = fitted_scorer
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
+    app.state.scorer = None

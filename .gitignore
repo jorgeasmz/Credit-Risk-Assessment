@@ -24,3 +24,6 @@ model/credit_risk_model.joblib
 .coverage
 htmlcov/
 .ruff_cache/
+
+# Local database
+*.db
