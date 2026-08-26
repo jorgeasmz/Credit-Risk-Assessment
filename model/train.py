@@ -55,8 +55,7 @@ def train_model() -> None:
     print("Confusion matrix (rows = actual, columns = predicted):")
     print(confusion_matrix(y_test, predictions))
 
-    # The explanation background is fitted here and travels with the model, so
-    # the service never needs the training set to explain a prediction.
+    # The background travels with the model; the service never sees the training set.
     save(clf, build_background(clf, X_train), MODEL_PATH)
     print(f"\nModel saved to {MODEL_PATH}")
 

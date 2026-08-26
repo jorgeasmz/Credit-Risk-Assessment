@@ -11,12 +11,8 @@ class Base(DeclarativeBase):
 
 
 def _engine_options(url: str) -> dict:
-    """
-    SQLite needs one concession that PostgreSQL does not.
-
-    FastAPI serves synchronous endpoints from a threadpool, and SQLite refuses
-    to reuse a connection across threads unless told otherwise.
-    """
+    """Per-dialect engine options."""
+    # FastAPI serves sync endpoints from a threadpool; SQLite blocks cross-thread reuse.
     if url.startswith("sqlite"):
         return {"connect_args": {"check_same_thread": False}}
     return {"pool_pre_ping": True}

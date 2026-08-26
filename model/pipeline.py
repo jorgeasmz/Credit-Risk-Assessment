@@ -14,14 +14,7 @@ from model.config import (
 
 
 def build_classifier():
-    """
-    The production classifier.
-
-    Logistic regression rather than the forest: on this dataset it costs less
-    under the UCI cost matrix, ranks better (ROC-AUC 0.806 vs 0.788) and, unlike
-    the forest, exposes coefficients that can justify a declined application.
-    See evaluate.py for the comparison.
-    """
+    """The production classifier; the README covers why it is not the forest."""
     return LogisticRegression(
         max_iter=1000,
         # The target is 70/30; without this the model under-predicts risk.
@@ -40,13 +33,7 @@ def build_forest():
 
 
 def build_pipeline(classifier=None) -> Pipeline:
-    """
-    Preprocessing and classifier as a single estimator.
-
-    Keeping the transformers inside the pipeline is what makes training and
-    serving impossible to desynchronise: the API hands over raw fields and the
-    pipeline applies the exact transformations it was fitted with.
-    """
+    """Preprocessing and classifier as a single estimator."""
     numerical_transformer = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="median")),
         ("scaler", StandardScaler()),

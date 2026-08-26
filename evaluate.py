@@ -1,11 +1,6 @@
 """
-Evaluates the credit risk pipeline against baselines and picks the decision
-threshold that minimises expected cost.
-
-The UCI German Credit dataset ships a cost matrix: approving an applicant who
-defaults costs 5, rejecting one who would have repaid costs 1. Optimising for
-accuracy on this data means ignoring that asymmetry, which is why the report
-leads with cost.
+Compares the credit risk pipeline against baselines and sweeps the decision
+threshold for the cost minimum.
 
 Usage: python -m evaluate
 """
@@ -82,8 +77,7 @@ def main() -> None:
             f"{total_cost(y_test, predictions):>8}"
         )
 
-    # Two trivial policies bound the problem: a model that costs more than
-    # rejecting everybody is worse than having no model at all.
+    # A model costing more than rejecting everybody is worse than no model.
     approve_all = total_cost(y_test, [0] * len(y_test))
     reject_all = total_cost(y_test, [1] * len(y_test))
     print(f"\nApprove everyone: {approve_all}   Reject everyone: {reject_all}")

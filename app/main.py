@@ -26,13 +26,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Loads the model once at startup and keeps it on the application state.
-
-    A failure here is logged rather than raised: the service still starts and
-    answers the health check, so an orchestrator can report why it is degraded
-    instead of watching the container restart in a loop.
-    """
+    """Loads the model at startup; a failure degrades the service instead of killing it."""
     try:
         app.state.scorer = load_scorer()
     except Exception:
@@ -89,12 +83,7 @@ def root(request: Request):
 
 @app.post("/predict", response_model=PredictionResponse, dependencies=PROTECTED)
 def predict(application: CreditApplication, scorer: ScorerDep, session: SessionDep):
-    """
-    Scores one credit application, explains it and records the decision.
-
-    The response carries the identifier of the stored decision, so the caller
-    can attach the outcome later and the decision can be produced on request.
-    """
+    """Scores one application, explains it and records the decision."""
     payload = application.model_dump()
 
     try:
@@ -123,12 +112,7 @@ def list_decisions(
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
     cursor: Annotated[int | None, Query(ge=1)] = None,
 ):
-    """
-    The decision log, newest first.
-
-    Paginated by key rather than by offset: OFFSET walks the rows it skips, and
-    shifts entries under the reader when new decisions arrive mid-pagination.
-    """
+    """The decision log, newest first, paginated by key."""
     items, next_cursor = repository.list_decisions(session, limit=limit, cursor=cursor)
     return DecisionPage(items=items, next_cursor=next_cursor)
 
@@ -148,12 +132,7 @@ def get_decision(decision_id: int, session: SessionDep):
     dependencies=PROTECTED,
 )
 def record_outcome(decision_id: int, outcome: OutcomeRequest, session: SessionDep):
-    """
-    Attaches the ground truth to a decision once the loan resolves.
-
-    This is what closes the loop: without it the service can report how many
-    applicants it rejected, but not what its mistakes cost.
-    """
+    """Attaches the ground truth to a decision once the loan resolves."""
     decision = repository.record_outcome(
         session, decision_id, defaulted=outcome.defaulted
     )

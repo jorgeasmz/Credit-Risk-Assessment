@@ -10,12 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Scorer:
-    """
-    A loaded artifact and its explainer, held for the life of the process.
-
-    Building the SHAP explainer costs more than using it, so it is constructed
-    once at startup rather than per request.
-    """
+    """A loaded artifact and its explainer, held for the life of the process."""
 
     def __init__(self, artifact: ModelArtifact):
         self.artifact = artifact
@@ -26,13 +21,7 @@ class Scorer:
         return self.artifact.version
 
     def score(self, application: dict, threshold: float = DECISION_THRESHOLD) -> dict:
-        """
-        Scores one application and explains the result.
-
-        The class comes from comparing the probability against an explicit
-        threshold rather than from predict(), whose implicit 0.5 cut-off assumes
-        a missed default and a rejected good applicant cost the same.
-        """
+        """Scores one application against an explicit threshold and explains it."""
         frame = pd.DataFrame([application])
 
         probability = float(self.artifact.pipeline.predict_proba(frame)[0][1])

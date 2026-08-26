@@ -57,14 +57,9 @@ class CreditApplication(BaseModel):
     )
 
 class PredictionResponse(BaseModel):
-    """
-    The scoring result, including why it came out that way.
+    """The scoring result, including why it came out that way."""
 
-    model_config disables Pydantic's protected "model_" namespace: the field is
-    called model_version because that is what it is, and the warning it would
-    otherwise raise is about a name collision that does not exist here.
-    """
-
+    # protected_namespaces=() allows the model_version field name.
     model_config = ConfigDict(protected_namespaces=())
 
     decision_id: int = Field(..., description="Identifier of the stored decision")
@@ -113,13 +108,7 @@ class OutcomeRequest(BaseModel):
 
 
 class PortfolioSummary(BaseModel):
-    """
-    Aggregate figures over the decision log.
-
-    Realised cost covers only the decisions with a recorded outcome: the cost
-    matrix needs to know what actually happened, so a service with no feedback
-    loop cannot report what it is costing.
-    """
+    """Aggregate figures; realised cost covers only decisions with an outcome."""
 
     total: int
     approved: int
