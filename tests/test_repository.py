@@ -1,5 +1,6 @@
 from app import repository
 from app.models import Decision
+from app.settings import SCORE_BUCKETS
 
 
 def _decision(session, **overrides):
@@ -100,3 +101,38 @@ def test_summary_ignores_decisions_without_an_outcome(session):
     assert summary["total"] == 1
     assert summary["outcomes_recorded"] == 0
     assert summary["realised_cost"] == 0
+
+
+def test_distribution_has_one_entry_per_bucket(session):
+    assert len(repository.score_distribution(session)) == SCORE_BUCKETS
+
+
+def test_distribution_of_an_empty_log_is_all_zeros(session):
+    assert repository.score_distribution(session) == [0] * SCORE_BUCKETS
+
+
+def test_every_decision_lands_in_exactly_one_bucket(session):
+    for probability in (0.05, 0.12, 0.15, 0.47, 0.9):
+        _decision(session, probability=probability)
+
+    distribution = repository.score_distribution(session)
+
+    assert sum(distribution) == 5
+    assert distribution[0] == 1
+    assert distribution[1] == 2
+    assert distribution[4] == 1
+
+
+def test_a_probability_of_one_lands_in_the_last_bucket(session):
+    """floor(1.0 * 10) is 10, which is off the end of the range."""
+    _decision(session, probability=1.0)
+
+    assert repository.score_distribution(session)[-1] == 1
+
+
+def test_summary_carries_the_distribution(session):
+    _decision(session, probability=0.3)
+
+    summary = repository.summarise(session)
+
+    assert sum(summary["score_distribution"]) == summary["total"]

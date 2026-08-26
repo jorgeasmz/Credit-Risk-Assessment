@@ -117,7 +117,9 @@ POST /decisions/41/outcome   {"defaulted": true}
 ```
 
 `GET /summary` then prices the recorded outcomes with the same cost matrix used
-to choose the model, and reports over those decisions only. A service with no
+to choose the model, and reports over those decisions only. It also returns the
+distribution of predicted probabilities across ten buckets, which is what makes
+it visible whether the threshold is cutting the portfolio where it should. A service with no
 feedback loop can say how many applicants it rejected; it cannot say whether it
 should have.
 

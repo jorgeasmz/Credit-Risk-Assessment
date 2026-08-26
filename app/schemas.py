@@ -119,3 +119,6 @@ class PortfolioSummary(BaseModel):
     false_negatives: int
     false_positives: int
     realised_cost: int
+    score_distribution: list[int] = Field(
+        ..., description="Counts of predicted probabilities per equal-width bucket"
+    )

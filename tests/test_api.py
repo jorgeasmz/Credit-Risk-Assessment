@@ -190,3 +190,12 @@ def test_lifespan_survives_a_missing_artifact(monkeypatch):
 
     assert body["model_loaded"] is False
     assert body["model_version"] is None
+
+
+def test_summary_exposes_the_score_distribution(client, valid_payload, auth):
+    client.post("/predict", json=valid_payload, headers=auth)
+
+    summary = client.get("/summary", headers=auth).json()
+
+    assert len(summary["score_distribution"]) == settings.SCORE_BUCKETS
+    assert sum(summary["score_distribution"]) == summary["total"]

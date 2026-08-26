@@ -27,6 +27,9 @@ PURPOSE_LABELS = {
 # How many fields the waterfall shows before collapsing the rest.
 TOP_CONTRIBUTIONS = 8
 
+# Must match SCORE_BUCKETS on the API side.
+SCORE_BUCKETS = 10
+
 st.set_page_config(page_title="Credit Risk Dashboard", page_icon="🏦", layout="wide")
 
 
@@ -212,6 +215,38 @@ def render_assessment() -> None:
         st.json(result)
 
 
+def score_histogram(counts: list[int], threshold: float) -> go.Figure:
+    """Where the portfolio's predicted probabilities fall, and where the threshold cuts."""
+    width = 1 / len(counts)
+    centres = [(i + 0.5) * width for i in range(len(counts))]
+
+    figure = go.Figure(
+        go.Bar(
+            x=centres,
+            y=counts,
+            width=width * 0.9,
+            marker={"color": ["#1e8449" if c < threshold else "#c0392b" for c in centres]},
+            hovertemplate="%{y} decisions<extra></extra>",
+        )
+    )
+    figure.add_vline(
+        x=threshold,
+        line={"color": "#555", "dash": "dash"},
+        annotation_text=f"threshold {threshold:.2f}",
+        annotation_position="top",
+    )
+    figure.update_layout(
+        title="Predicted probability of default",
+        xaxis_title="Probability",
+        yaxis_title="Decisions",
+        showlegend=False,
+        height=360,
+        margin={"t": 60, "b": 40},
+    )
+    figure.update_xaxes(range=[0, 1], tickformat=".0%")
+    return figure
+
+
 def render_decision_log() -> None:
     st.subheader("Decision log")
     st.caption(
@@ -265,6 +300,14 @@ def render_decision_log() -> None:
             st.rerun()
 
 
+def items_threshold(default: float = 0.45) -> float:
+    """The threshold in force, read from the most recent decision."""
+    page, error = call_api("get", "/decisions?limit=1")
+    if error or not page["items"]:
+        return default
+    return float(page["items"][0]["threshold"])
+
+
 def render_portfolio() -> None:
     st.subheader("Portfolio")
 
@@ -280,6 +323,11 @@ def render_portfolio() -> None:
     row[3].metric("Outcomes known", summary["outcomes_recorded"])
 
     st.divider()
+
+    distribution = summary["score_distribution"]
+    if sum(distribution):
+        threshold = items_threshold()
+        st.plotly_chart(score_histogram(distribution, threshold), width="stretch")
 
     if not summary["outcomes_recorded"]:
         st.info(
