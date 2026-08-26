@@ -1,5 +1,5 @@
 # 1. Base Image
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 # 2. Set Working Directory inside the container
 WORKDIR /app
@@ -15,11 +15,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Copy Application Code
 COPY . .
 
-# 6. Build the Model
-RUN python model/train.py
+# 6. Build the Model. Run as a module: train.py imports from the model package.
+RUN python -m model.train
 
 # 7. Expose the port
 EXPOSE 8000
 
-# 8. Run the Application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 8. Run the Application.
+# Render and most container hosts inject $PORT and expect the process to bind
+# to it. Exec form would not expand the variable, so this goes through sh, and
+# "exec" hands PID 1 to uvicorn so it still receives SIGTERM on shutdown.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
