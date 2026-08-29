@@ -55,7 +55,7 @@ Sweeping the decision threshold against the cost curve puts the optimum at
 cost gets worse: the most accurate threshold in the sweep costs 25% more.
 Reproduce the tables with `python -m evaluate`.
 
-## Explaining a Decision
+## Decision explanations
 
 A declined applicant is entitled to know why, and in several jurisdictions the
 lender is obliged to say. Every response carries the per-field contribution to
@@ -92,7 +92,7 @@ masker is pinned to the full background instead, so a decision produced in
 March explains identically in September. A test asserts the additivity property
 directly: base value plus contributions equals the log-odds the model produced.
 
-## The Decision Log
+## Decision log
 
 Every scoring is persisted with its inputs, its explanation, the threshold
 applied and the **content hash of the artifact that decided**. A semantic
@@ -107,10 +107,10 @@ Pagination seeks on the primary key rather than using `OFFSET`, which has to
 walk the rows it skips and silently shifts entries under a reader when new
 decisions arrive mid-pagination.
 
-### Closing the loop
+### Outcome feedback
 
-Cost cannot be measured without knowing what actually happened, so the service
-cannot report what its mistakes cost until someone tells it:
+Cost cannot be measured without the realised outcome, so the service cannot
+report what its errors cost until that outcome is recorded:
 
 ```
 POST /decisions/41/outcome   {"defaulted": true}
@@ -118,10 +118,9 @@ POST /decisions/41/outcome   {"defaulted": true}
 
 `GET /summary` then prices the recorded outcomes with the same cost matrix used
 to choose the model, and reports over those decisions only. It also returns the
-distribution of predicted probabilities across ten buckets, which is what makes
-it visible whether the threshold is cutting the portfolio where it should. A service with no
-feedback loop can say how many applicants it rejected; it cannot say whether it
-should have.
+distribution of predicted probabilities across ten buckets, which shows where
+the threshold cuts the portfolio. Without recorded outcomes the service can
+report the volume of rejections but not their cost.
 
 ## Quickstart
 
