@@ -187,6 +187,10 @@ def main() -> None:
 
     if arguments.publish:
         commit = publish(record, arguments.repo)
+        # Written back so the gate reads the artifact's commit from the same file as
+        # the score, rather than from a value copied between two commands.
+        record["revision"] = commit
+        RELEASE_PATH.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
         print(f"published to https://huggingface.co/{arguments.repo} at {commit}")
 
 

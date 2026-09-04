@@ -130,3 +130,24 @@ def test_an_empty_frame_is_not_measurable(fitted_pipeline, training_frame):
 
     with pytest.raises(ValueError):
         measure(fitted_pipeline, empty, pd.Series(dtype=int))
+
+
+def test_the_published_commit_is_written_back_into_the_record(monkeypatch, tmp_path):
+    """The gate reads the score and the commit from one file, not from two commands."""
+    import json as json_module
+
+    from model import release
+
+    path = tmp_path / "release.json"
+    monkeypatch.setattr(release, "RELEASE_PATH", path)
+    monkeypatch.setattr(release, "build_record", lambda: {
+        "metric": "total_cost", "value": 96, "rows": 200, "threshold": 0.45,
+        "roc_auc": 0.8, "accuracy": 0.72, "dataset": "abc", "environment": {},
+        "artifact_sha256": "deadbeef",
+    })
+    monkeypatch.setattr(release, "publish", lambda record, repo: "f" * 40)
+    monkeypatch.setattr("sys.argv", ["release", "--publish"])
+
+    release.main()
+
+    assert json_module.loads(path.read_text())["revision"] == "f" * 40
