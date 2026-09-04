@@ -14,22 +14,34 @@ end for interactive use.
 
 ```mermaid
 flowchart LR
-    subgraph training["Training - image build"]
+    subgraph training["Training - release workflow"]
         UCI[("UCI German Credit")] --> PIPE["ColumnTransformer<br/>+ LogisticRegression"]
         PIPE --> ART[("artifact:<br/>pipeline + SHAP background")]
+        ART --> HF[("Hugging Face<br/>model repository")]
+        HF --> GATE{"promotion gate"}
     end
 
-    subgraph serving["Serving"]
-        ART --> API["FastAPI<br/>score + explain"]
+    subgraph serving["Serving - image build"]
+        GATE -->|"pinned commit"| API["FastAPI<br/>score + explain"]
         UI["Streamlit"] -->|"X-API-Key"| API
         API --> DB[("PostgreSQL<br/>decision log")]
         DB --> API
     end
 ```
 
-The artifact is not committed. It is rebuilt by `python -m model.train`, which
-the Dockerfile runs at image build time, and it carries its own SHAP background
-so the service never needs the training set to explain a prediction.
+The artifact is not committed, and the image does not fit one. A build that
+trains ships a model that nothing measured and nothing compared against the one
+it replaces, and it fails whenever the dataset's host is down.
+
+What is committed is `model/production.json`, a pointer naming the version the
+registry promoted, the commit its artifact lives at and the score that justified
+it. `python -m model.fetch` downloads exactly those bytes at build time. The
+artifact carries its own SHAP background, so the service never needs the
+training set to explain a prediction.
+
+Fitting, measuring, publishing and promoting happen in the release workflow
+instead, and a promotion opens a pull request whose diff is the pointer. Merging
+it is the deployment.
 
 ## Results
 
@@ -141,6 +153,8 @@ migrations and then serves. The default development key is
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
+python -m model.fetch              # downloads the version the registry pinned
+# or, to fit one locally instead:
 python -m model.train              # writes model/credit_risk_model.joblib
 alembic upgrade head               # creates the schema (SQLite by default)
 API_KEY=dev python -m app.main     # API on :8000
@@ -173,6 +187,29 @@ is a worse failure than one that stops.
 |---|---|---|
 | API + database | [Render](https://credit-risk-assessment-6npa.onrender.com/docs) | `Dockerfile`, declared in `render.yaml` |
 | Front end | [Streamlit Community Cloud](https://jorgeasmz-credit-risk-assessment.streamlit.app/) | `frontend/app.py` |
+| Model versions | [ML-Platform](https://github.com/jorgeasmz/ML-Platform) registry | the gate decides which one serves |
+| Artifact | [Hugging Face](https://huggingface.co/jorgeasmz/credit-risk-scorer) | published by the release workflow |
+
+### Releasing
+
+`.github/workflows/release.yml` fits a candidate, measures it on the held-out
+rows, publishes it, and asks the platform's gate whether it replaces what is in
+production. The gate promotes on expected loss under the dataset's own cost
+matrix rather than on accuracy, and refuses a candidate measured on different
+held-out data instead of comparing incomparable scores.
+
+A candidate that does not improve is an ordinary outcome rather than a failure,
+so the run stays green and withholds the pointer. Without the pointer there is
+no commit, and without the commit there is no deployment. That is the whole of
+the block.
+
+The workflow needs four secrets: `HF_TOKEN`, `MLFLOW_TRACKING_URI`,
+`MLFLOW_TRACKING_USERNAME` and `MLFLOW_TRACKING_PASSWORD`. The image build needs
+none of them, since the pointer addresses a public commit over plain HTTPS.
+
+**Image size.** The build context excludes the host virtualenv, which is 1.1 GB
+of another machine's paths. The image is 1.49 GB against 3.01 GB without a
+`.dockerignore`, and `/app` is 728 KB against 1.2 GB.
 
 `render.yaml` declares both the web service and its PostgreSQL instance, wires
 the connection string in and generates the API key. Copy that key into the
