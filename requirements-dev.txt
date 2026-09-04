@@ -1,4 +1,7 @@
 -r requirements.txt
+# The suite covers model/release.py, which reads the catalogue and the digest
+# from the platform, so the test environment installs it too.
+-r requirements-train.txt
 pytest
 pytest-cov
 httpx
