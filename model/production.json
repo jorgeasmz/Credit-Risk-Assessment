@@ -1,0 +1,20 @@
+{
+  "artifact_file": "credit_risk_model.joblib",
+  "dataset": "ba349129c0b0c828",
+  "environment": {
+    "packages": {
+      "joblib": "1.5.3",
+      "numpy": "2.5.2",
+      "scikit-learn": "1.9.0",
+      "scipy": "1.18.1"
+    },
+    "python": "3.12.3"
+  },
+  "metric": "total_cost",
+  "model": "credit-risk",
+  "repo": "jorgeasmz/credit-risk-scorer",
+  "revision": "77583b460177a9171fe035c6038b75371a2259b2",
+  "url": "https://huggingface.co/jorgeasmz/credit-risk-scorer/resolve/77583b460177a9171fe035c6038b75371a2259b2/credit_risk_model.joblib",
+  "value": 96.0,
+  "version": "3"
+}

@@ -15,8 +15,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. Copy Application Code
 COPY . .
 
-# 6. Build the Model. Run as a module: train.py imports from the model package.
-RUN python -m model.train
+# 6. Fetch the model the registry pinned. Training here would ship a model that
+# nothing measured and nothing compared against the one it replaces, and would tie
+# the build to the dataset's host staying up. The pointer names a commit, so the
+# image gets exactly the bytes the gate scored, over public HTTPS and with no
+# credential in the build.
+RUN python -m model.fetch
 
 # 7. Expose the port
 EXPOSE 8000
