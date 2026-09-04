@@ -17,7 +17,11 @@ env/
 Thumbs.db
 
 # Project Specific
+# The artifact, the record measured from it and the card generated from that
+# record are outputs of a training run. The registry holds them, not git.
 model/credit_risk_model.joblib
+model/release.json
+model/README.md
 
 # Testing
 .pytest_cache/

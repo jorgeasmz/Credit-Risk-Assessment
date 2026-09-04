@@ -1,0 +1,5 @@
+# Training and release only. The serving image installs requirements.txt and
+# never imports any of this.
+-r requirements.txt
+ml-platform @ git+https://github.com/jorgeasmz/ML-Platform.git
+huggingface_hub==1.30.0
