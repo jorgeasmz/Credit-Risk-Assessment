@@ -1,0 +1,22 @@
+# The serving image installs into the system Python, so the host virtualenv is
+# 1.1 GB of dead weight with paths that point at another machine.
+venv/
+.venv/
+
+# History, caches and test artifacts. None of it is read at runtime.
+.git/
+.github/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# The suite does not run in the image, and the dashboard is deployed separately.
+tests/
+frontend/
+
+# Local state and secrets that must never reach a layer.
+.env
+*.db
