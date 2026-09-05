@@ -1,0 +1,66 @@
+name: Image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "app/**"
+      - "model/**"
+      - "alembic/**"
+      - "requirements.txt"
+      - ".github/workflows/image.yml"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    # A native ARM runner rather than emulation. The cluster this image is pulled
+    # into runs Ampere A1 cores, which is the only shape the free tier offers with
+    # enough memory to be a Kubernetes node, and building scikit-learn and SHAP
+    # under QEMU takes tens of minutes to produce the same layers.
+    runs-on: ubuntu-24.04-arm
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The image carries the artifact the pointer names, so the model version is
+      # part of what this build is. A tag that moves would let a cluster serve one
+      # version while reporting another.
+      - name: Read the pinned version
+        id: pin
+        run: |
+          version=$(python3 -c "import json;print(json.load(open('model/production.json'))['version'])")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          echo "Pinned model version $version" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/credit-risk-api:sha-${{ steps.pin.outputs.sha }}
+            ghcr.io/${{ github.repository_owner }}/credit-risk-api:model-${{ steps.pin.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Report the tags
+        run: |
+          {
+            echo "| Tag | Meaning |"
+            echo "|---|---|"
+            echo "| \`sha-${{ steps.pin.outputs.sha }}\` | This build, immutable |"
+            echo "| \`model-${{ steps.pin.outputs.version }}\` | The newest build carrying model version ${{ steps.pin.outputs.version }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
