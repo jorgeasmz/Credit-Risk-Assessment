@@ -134,6 +134,47 @@ distribution of predicted probabilities across ten buckets, which shows where
 the threshold cuts the portfolio. Without recorded outcomes the service can
 report the volume of rejections but not their cost.
 
+## Input drift
+
+The model was fitted on one population and is asked about whatever arrives.
+Nothing in the serving path notices when those stop being the same, and the
+expected loss that justified the promotion was measured on the first one.
+
+`python -m model.monitor` compares the decision log against the training split,
+column by column, on the population stability index. Its thresholds are the
+conventional ones from credit scoring, where the index comes from: below 0.1 no
+meaningful shift, 0.1 to 0.25 moderate, above 0.25 significant. The distribution
+of scores is compared as well as the features, because each feature can stay put
+while the model's output moves, and the output is what the decision is made on.
+
+### What it detects
+
+Measured against samples whose shift is known, with the training split as the
+reference:
+
+| Sample | Rows | Worst column | Columns above 0.25 |
+|---|---:|---|---:|
+| The held-out split, same population | 200 | `purpose` 0.073 | **0 of 20** |
+| Held-out applicants with above-median duration | 91 | `duration` 3.512 | 3 of 20 |
+| Held-out applicants in the top quartile of amount | 50 | `amount` 5.935 | 6 of 20 |
+
+The first row is the one that matters: across twenty columns, data drawn from the
+same population raises nothing. The other two name the filtered column first, and
+the third reports six columns for one filter because amount, duration and age move
+together. A monitor that reported only the column that was filtered would be
+missing what the shift actually did to the population.
+
+### What it does not yet say
+
+The decision log holds one scored application. The monitor reports that and
+compares nothing: a handful of rows is not a distribution, and below 100 it
+declines rather than dressing them up as one. The figures above measure the
+instrument, not production.
+
+The comparison runs weekly and exits non-zero when a column moves significantly,
+which fails the scheduled job and sends a notification. A run that writes drift
+into a summary nobody opens is not an alert.
+
 ## Quickstart
 
 ```bash
@@ -299,12 +340,15 @@ Credit-Risk-Assessment/
 │   ├── pipeline.py           # ColumnTransformer + classifier
 │   ├── explain.py            # SHAP, aggregated onto the original fields
 │   ├── artifact.py           # Save, load and content-hash the model
-│   └── train.py              # Training entry point
+│   ├── train.py              # Fits a candidate
+│   ├── release.py            # Measures it and records what the gate needs
+│   ├── fetch.py              # Downloads the version the registry pinned
+│   └── monitor.py            # The scored population against the fitted one
 ├── alembic/                  # Schema migrations
 ├── frontend/app.py           # Streamlit client
 ├── evaluate.py               # Model comparison and cost sweep
 ├── tests/                    # pytest suite
-├── Dockerfile                # Trains the model, migrates, serves the API
+├── Dockerfile                # Fetches the pinned model, migrates, serves the API
 ├── docker-compose.yml        # PostgreSQL + API + front end
 ├── render.yaml               # Render Blueprint: web service and database
 └── ruff.toml                 # Lint rule selection
