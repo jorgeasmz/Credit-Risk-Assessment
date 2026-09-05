@@ -282,7 +282,7 @@ until it is.
 ```bash
 pip install -r requirements-dev.txt
 
-pytest              # 62 tests, 95% coverage of app/ and model/
+pytest              # 103 tests, 90% coverage of app/ and model/
 ruff check .
 ```
 
